@@ -66,6 +66,30 @@ public class BoardController {
         return "/board/list";
     }
 
+    // 게시글 저장화면 요청
+    // POST - http://localhost:8080/board/save
+    @GetMapping("/board/save")
+    public String saveForm() {
+
+        return "board/save-form";
+    }
+
+    // 게시글 저장요청 (기능 요청)
+    // POST - http://localhost:8080/board/save
+    @PostMapping("/board/save")
+    public String saveProc(BoardRequest.SaveDTO saveDTO) {
+        // HTTP 요청: username=value&title=value&content=&value
+        // 스프링이 처리: new SaveDto(), setter 메서드 호출하여 값을 넣어줌
+
+        Board board = saveDTO.toEntity();
+
+        repository.save(board);
+
+//        Board board = new Board(saveDTO);
+//        repository.save(board);
+
+        return "redirect:/";
+    }
 
 //    @Autowired
 //    private BoardPersistRepository boardPersistRepository;
