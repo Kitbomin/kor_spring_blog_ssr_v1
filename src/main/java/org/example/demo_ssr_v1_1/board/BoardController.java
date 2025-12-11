@@ -58,7 +58,7 @@ public class BoardController {
         return "redirect:/board/list";
     }
 
-    @GetMapping("/board/list")
+    @GetMapping({"/board/list", "/"})
     public String boardList(Model model) {
         List<Board> boardList = repository.findAll();
         model.addAttribute("boardList", boardList);
