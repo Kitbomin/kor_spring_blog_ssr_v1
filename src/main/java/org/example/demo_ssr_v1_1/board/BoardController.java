@@ -1,170 +1,174 @@
 package org.example.demo_ssr_v1_1.board;
 
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.demo_ssr_v1_1._core.errors.exception.*;
+import org.example.demo_ssr_v1_1.user.User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
 
-@RequiredArgsConstructor
+
+@RequiredArgsConstructor // DI
 @Controller // IoC
 public class BoardController {
 
-//    @Autowired
     private final BoardPersistRepository repository;
 
-//    public BoardController(BoardPersistRepository boardPersistRepository) {
-//        this.boardPersistRepository = boardPersistRepository;
-//    }
-
-    // 게시글 수정 폼 페이지 요청
-    // GET - http://localhost:8080/board/1/update
+    /**
+     * 게시글 수정 화면 요청
+     * @param id
+     * @param model
+     * @param session
+     * @return
+     */
     @GetMapping("/board/{id}/update")
-    public String updateForm(
-            @PathVariable Long id,
-            Model model
-//            HttpServletRequest request
-    ) {
+    public String updateForm(@PathVariable Long id,Model model, HttpSession session) {
 
-
-        Board board = repository.findById(id);
-        if (board == null) {
-            throw new RuntimeException("수정할 게시글을 찾을 수 없어요");
+        // 1. 인증 검사 (0)
+        User sessionUser = (User)session.getAttribute("sessionUser"); // sessionUser -> 상수
+        if(sessionUser == null) {
+            System.out.println("로그인 안한 사용자의 요청이 들어 옴");
+            return "redirect:/login";
         }
 
-        // view에 밀어넣는 방법
-        model.addAttribute("board", board);
-//        request.setAttribute("board", board);
+        // 2. 인가 검사 (0)
+        Board board =  repository.findById(id);
+        if(board == null) {
+            throw new Exception500("게시글이 삭제 되었습니다");
+        }
 
+        if(board.isOwner(sessionUser.getId()) == false) {
+            throw new Exception403("게시글이 수정 권한 없음");
+        }
+
+        model.addAttribute("board", board);
         return "board/update-form";
     }
 
-    // 게시글 수정 요청 (기능요청)
-    // POST - http://localhost:8080/board/1/update-form
+    /**
+     * 게시글 수정 요청 기능
+     * @param id
+     * @param updateDTO
+     * @param session
+     * @return
+     */
     @PostMapping("/board/{id}/update")
     public String updateProc(@PathVariable Long id,
-                             BoardRequest.UpdateDTO updateDTO) {
+                             BoardRequest.UpdateDTO updateDTO, HttpSession session) {
 
-        try {
-            // 더티체킹 활용
-            repository.updateById(id, updateDTO);
-        }catch (Exception e) {
-            throw new RuntimeException("게시글 수정 실패");
+        // 1. 인증 처리 (o)
+        User sessionUser =  (User)session.getAttribute("sessionUser");
+        if(sessionUser == null) {
+            throw new Exception401("로그인 먼저 해주세요");
         }
 
+        Board board = repository.findById(id);
+        if(board.isOwner(sessionUser.getId()) == false) {
+            throw new Exception403("게시글 수정 권한이 없어요오");
+        }
+
+        try {
+            repository.updateById(id, updateDTO);
+            // 더티 체킹 활용
+        } catch (Exception e) {
+            throw new RuntimeException("게시글 수정 실패");
+        }
         return "redirect:/board/list";
     }
 
+
+    /**
+     * 게시글 목록 화면 요청
+     * @param model
+     * @return
+     */
     @GetMapping({"/board/list", "/"})
     public String boardList(Model model) {
+//        throw new Exception403("너는 못 지나간다");
         List<Board> boardList = repository.findAll();
         model.addAttribute("boardList", boardList);
-
-        return "/board/list";
+        return "board/list";
     }
 
-    // 게시글 저장화면 요청
-    // POST - http://localhost:8080/board/save
-    @GetMapping("/board/save")
-    public String saveForm() {
 
+    /**
+     * 게시글 작성 화면 요청
+     * @param session
+     * @return
+     */
+    @GetMapping("/board/save")
+    public String saveFrom(HttpSession session) {
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if(sessionUser == null) {
+           throw new Exception401("로그인 먼저 해줘요");
+        }
         return "board/save-form";
     }
 
-    // 게시글 저장요청 (기능 요청)
-    // POST - http://localhost:8080/board/save
+    /**
+     * 게시글 작성 요청 기능
+     * @param saveDTO
+     * @param session
+     * @return
+     */
     @PostMapping("/board/save")
-    public String saveProc(BoardRequest.SaveDTO saveDTO) {
-        // HTTP 요청: username=value&title=value&content=&value
-        // 스프링이 처리: new SaveDto(), setter 메서드 호출하여 값을 넣어줌
-
-        Board board = saveDTO.toEntity();
-
-        repository.save(board);
-
-//        Board board = new Board(saveDTO);
-//        repository.save(board);
-
-        return "redirect:/";
-    }
-
-    // 삭제 @DeleteMapping 이지만 form 태그 활용이기에 없음 -> get, post (fetch 함수 활용)
-//    @GetMapping("/board/{id}/delete")
-//    public String delete(@PathVariable Long id) {
-//        repository.deleteById(id);
-//
-//        return "redirect:/";
-//    }
-
-    @PostMapping("/board/{id}/delete")
-    public String delete(@PathVariable Long id) {
-        repository.deleteById(id);
-
-        return "redirect:/";
-    }
-
-    // 상세 보기
-    // http://localhost:8080/board/1
-    @GetMapping("/board/{id}")
-    public String detail(@PathVariable Long id, Model model) {
-
-        Board board = repository.findById(id);
-        if (board == null) {
-            // 404
-            throw new RuntimeException("게시글이 없어요" + id);
+    public String saveProc(BoardRequest.SaveDTO saveDTO, HttpSession session) {
+        // 1. 인증 처리 확인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if(sessionUser == null) {
+            throw new Exception401("로그인 먼저 해줘요");
         }
 
-        model.addAttribute("board", board);
-
-        return "board/detail";
+        Board board = saveDTO.toEntity(sessionUser);
+        repository.save(board);
+        return "redirect:/";
     }
 
+    /**
+     * 게시글 삭제 요청 기능
+     * @param id
+     * @param session
+     * @return
+     */
+    @PostMapping("/board/{id}/delete")
+    public String delete(@PathVariable Long id, HttpSession session) {
+        // 1. 인증 처리 (o)
+        // 1. 인증 처리 확인
+        User sessionUser = (User) session.getAttribute("sessionUser");
+        if(sessionUser == null) {
+            return "redirect:/login";
+        }
+        // 2. 인가 처리 (o) || 관리자 권한
+        Board board = repository.findById(id);
+        if(board.isOwner(sessionUser.getId()) == false) {
+            throw new Exception401("삭제 권한이 없어요");
+        }
 
-//    @Autowired
-//    private BoardPersistRepository boardPersistRepository;
-//
-//    // 게시글 화면 요청 - 자원요청 get
-//    // http://localhost:8080/board/save-form
-//    @GetMapping("/board/save-form")
-//    public String saveFrom() {
-//        return "board/save-form";
-//    }
-//
-//    // 게시글 작성 기능
-//    //post - http://localhost:8080/board/save-form
-//    @PostMapping("/board/save-form")
-//    public String saveFormProc(@RequestParam("username") String username,
-//                               @RequestParam("title") String title,
-//                               @RequestParam("content") String content) {
-//
-//        System.out.println("username : " + username);
-//        System.out.println("title : " + title);
-//        System.out.println("content : " + content);
-//
-//        Board board = new Board();
-//        board.setUsername(username);
-//        board.setTitle(title);
-//        board.setContent(content);
-//
-//        boardPersistRepository.save(board);
-//
-//        return "redirect:/board/list";
-//    }
-//
-//    // 게시글 목록 보기
-//    // http://localhost:8080/board/list
-//    @GetMapping("/board/list")
-//    public String list(Model model) {
-//
-//        List<Board> boardList = boardPersistRepository.findAll();
-//        model.addAttribute("boardList", boardList);
-//
-//        System.out.println(boardList.stream().toList());
-//        return "board/list";
-//    }
+        repository.deleteById(id);
+        return "redirect:/";
+    }
+
+    /**
+     * 게시글 상세 보기 화면 요청
+     * @param id
+     * @param model
+     * @return
+     */
+    @GetMapping("board/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        Board board = repository.findById(id);
+        if(board == null) {
+            // 404
+            throw new Exception404("게시글을 찾을 수 없어요 ");
+        }
+        model.addAttribute("board", board);
+        return "board/detail";
+    }
 
 
 }
