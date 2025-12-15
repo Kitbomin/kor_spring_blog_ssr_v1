@@ -1,6 +1,5 @@
 package org.example.demo_ssr_v1_1.user;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.example.demo_ssr_v1_1._core.errors.exception.Exception403;
@@ -10,11 +9,24 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
+/**
+ * 사용자 Controller (표현 계층)
+ * 핵심 개념:
+ *  - HTTP 요청을 받아서 처리
+ *  - 요청 데이터 검증 및 파라미터 바인딩 처리
+ *  - Service 레이어에 비즈니스 로직을 위임함
+ *  - 응답 데이터를 View에 전달함
+ *
+ *
+ */
+
+
 @RequiredArgsConstructor
 @Controller
 public class UserController {
 
     private final UserRepository userRepository;
+    private final UserService userService;
 
     // 회원 정보 수정 화면 요청
     // http://localhost:8080/user/update
@@ -27,28 +39,21 @@ public class UserController {
         // 1. 인증 검사 (o)
         // 인증 검사를 하려면 세션 메모리에 접근해서 사용자의 정보가 있는 없는지 여부 확인
         User sessionUser = (User)session.getAttribute("sessionUser");
-        if(sessionUser == null) {
-            System.out.println("로그인 하지 않은 사용자 입니다");
-            return "redirect:/login";
-        }
+        // LoginInterceptor 가 알아서 처리 해줌 !!
+
 
         // 2. 인가 처리
-        //  - 세션의 사용자 ID로 회원 정보 조회
-        User user = userRepository.findById(sessionUser.getId());
-
-        if (user == null) {
-            throw new Exception404("사용자를 찾을 수 없ㅅ어요");
+        // 세션의 사용자 ID로 회원 정보 조회
+        User user = userService.findById(sessionUser.getId());
+        if(user == null) {
+            throw new Exception404("사용자를 찾을 수 없습니다");
         }
 
-        if (!user.isOwner(sessionUser.getId())) {
-            throw new Exception403("권한이 없ㅇ어요^^");
+        if(!user.isOwner(sessionUser.getId())) {
+            throw new Exception403("회원정보 수정 권한이 없습니다");
         }
 
-
-        // 밑으로 온다면 로그인 했던 사용자가 맞음.
-        User user = userRepository.findById(sessionUser.getId());
         model.addAttribute("user", user);
-
         return "user/update-form";
     }
 
@@ -59,19 +64,16 @@ public class UserController {
     public String updateProc(UserRequest.UpdateDTO updateDTO, HttpSession session) {
         // 1.  인증 검사
         User sessionUser =  (User) session.getAttribute("sessionUser");
-        if(sessionUser == null) {
-            System.out.println("로그인 하지 않은 사용자 접근 막음");
-            return "redirect:/login";
-        }
+        // LoginInterceptor 가 알아서 처리 해줌 !!
 
-        // 인가 검사 (DB 정보 조회)
+        // 인가 처리 (DB 정보 조회)
         User user = userRepository.findById(sessionUser.getId());
-        if (user == null) {
-            throw new Exception404("사용자 못찾ㅇ았어요오");
+        if(user == null) {
+            throw new Exception404("사용자를 찾을 수 없습니다");
         }
 
-        if (!user.isOwner(sessionUser.getId())){
-            throw new Exception403("회원 정보 수정 권한이 없어요오");
+        if(!user.isOwner(sessionUser.getId())) {
+            throw new Exception403("회원 정보 수정 권한이 없습니다");
         }
 
         // 2.  유효성 검사
