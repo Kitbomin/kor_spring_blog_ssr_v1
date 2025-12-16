@@ -17,7 +17,7 @@ import java.util.List;
 @Controller // IoC
 public class BoardController {
 
-    private final BoardPersistRepository repository;
+    private final BoardService boardService;
 
     /**
      * 게시글 수정 화면 요청
@@ -34,14 +34,7 @@ public class BoardController {
         // LoginInterceptor 가 알아서 처리 해줌 !!
 
         // 2. 인가 검사 (0)
-        Board board = repository.findById(id);
-        if(board == null) {
-            throw new Exception500("게시글이 삭제 되었습니다");
-        }
-
-        if(board.isOwner(sessionUser.getId()) == false) {
-            throw new Exception403("게시글 수정 권한 없음");
-        }
+        BoardResponse.UpdateFormDto board = boardService.게시글수정화면(id, sessionUser.getId());
 
         model.addAttribute("board", board);
         return "board/update-form";
@@ -59,20 +52,10 @@ public class BoardController {
                              BoardRequest.UpdateDTO updateDTO, HttpSession session) {
 
         // 1. 인증 처리 (o)
-        User sessionUser =  (User)session.getAttribute("sessionUser");
-        // LoginInterceptor 가 알아서 처리 해줌 !!
+        User sessionUser = (User)session.getAttribute("sessionUser");
+        updateDTO.validate();
+        boardService.게시글수정(updateDTO, id, sessionUser.getId());
 
-        Board board = repository.findById(id);
-        if(board.isOwner(sessionUser.getId()) == false) {
-            throw new Exception403("게시글 수정 권한이 없습니다");
-        }
-
-        try {
-            repository.updateById(id, updateDTO);
-            // 더티 체킹 활용
-        } catch (Exception e) {
-            throw new RuntimeException("게시글 수정 실패");
-        }
         return "redirect:/board/list";
     }
 
@@ -84,7 +67,8 @@ public class BoardController {
      */
     @GetMapping({"/board/list", "/"})
     public String boardList(Model model) {
-        List<Board> boardList = repository.findAll();
+        List<BoardResponse.ListDto> boardList = boardService.게시글목록조회();
+
         model.addAttribute("boardList", boardList);
         return "board/list";
     }
@@ -97,7 +81,6 @@ public class BoardController {
     @GetMapping("/board/save")
     public String saveFrom(HttpSession session) {
         User sessionUser = (User) session.getAttribute("sessionUser");
-        // LoginInterceptor 가 알아서 처리 해줌 !!
         return "board/save-form";
     }
 
@@ -110,11 +93,10 @@ public class BoardController {
     @PostMapping("/board/save")
     public String saveProc(BoardRequest.SaveDTO saveDTO, HttpSession session) {
         // 1. 인증 처리 확인
-        User sessionUser = (User) session.getAttribute("sessionUser");
-        // LoginInterceptor 가 알아서 처리 해줌 !!
 
-        Board board = saveDTO.toEntity(sessionUser);
-        repository.save(board);
+        // 2. 유효성 검사(형식), 논리적인 검사는 서비스단에서 함
+        User sessionUser = (User) session.getAttribute("sessionUSer");
+        boardService.게시글작성(saveDTO, sessionUser);
         return "redirect:/";
     }
 
@@ -128,16 +110,9 @@ public class BoardController {
     public String delete(@PathVariable Long id, HttpSession session) {
         // 1. 인증 처리 (o)
         // 1. 인증 처리 확인
-        User sessionUser = (User) session.getAttribute("sessionUser");
-        // LoginInterceptor 가 알아서 처리 해줌 !!
+        User sessionUser = (User) session.getAttribute("sessionUSer");
+        boardService.게시글삭제(id, sessionUser.getId());
 
-        // 2. 인가 처리 (o) || 관리자 권한
-        Board board = repository.findById(id);
-        if(board.isOwner(sessionUser.getId()) == false) {
-            throw new Exception401("삭제 권한이 없습니다");
-        }
-
-        repository.deleteById(id);
         return "redirect:/";
     }
 
@@ -148,11 +123,21 @@ public class BoardController {
      * @return
      */
     @GetMapping("board/{id}")
-    public String detail(@PathVariable Long id, Model model) {
-        Board board = repository.findById(id);
-        if(board == null) {
-            throw new Exception404("게시글을 찾을 수 없어요 : ");
+    public String detail(@PathVariable Long id, Model model, HttpSession session) {
+        BoardResponse.DetailDto board = boardService.게시글상세조회(id);
+
+        // 세션에 로그인 사용자 정보 조회 (없을 수도 있음)
+        User sessionUser = (User) session.getAttribute("sessionUser");
+
+        boolean isOwner = false;
+
+//        if (board.getUserId().equals(sessionUser.getId())) {}
+        if (sessionUser != null && board.getUserId() != null) {
+            isOwner = board.getUserId().equals(sessionUser.getId());
         }
+
+
+        model.addAttribute("isOwner", isOwner);
         model.addAttribute("board", board);
         return "board/detail";
     }

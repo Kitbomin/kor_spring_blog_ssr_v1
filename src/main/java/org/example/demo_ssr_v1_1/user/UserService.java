@@ -25,6 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserService {
+    // 객체 지향 개념 --> SOLID 원칙
+    /**
+     * S - 단일 책임
+     * O - 개방 폐쇄
+     * L - 리스코프 치환
+     * I -
+     * D - 의존성 역전 -> 추상화가 높은 녀석을 선언하는 것이 좋음
+     */
     private final UserRepository userRepository;
 
     // 회원 가입
