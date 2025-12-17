@@ -4,6 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.demo_ssr_v1_1._core.errors.exception.Exception403;
 import org.example.demo_ssr_v1_1._core.errors.exception.Exception404;
 import org.example.demo_ssr_v1_1.user.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,19 +30,39 @@ public class BoardService {
      */
     private final BoardRepository boardRepository;
 
+    public BoardResponse.PageDto 게시글목록조회(int page, int size) {
+        // page는 0부터 시작
+        // 상한선 제한
+        // size는 기본값 5, 최소 1, 최대 50으로 제한해둘거임
+        // 페이지 번호가 음수가 되는 것을 막음
+        int validPage = Math.max(0, page); // 양수값 보장
+        // 최대값 제한 - Math.max(1, Math.min(50          => 최대값을 50으로 제한함
+        // 최소값 제한 - Math.max(1, Math.min(50, size))  => 최고값을 1로 보장하는거임
+        int validSize = Math.max(1, Math.min(50, size));
+
+        // 정렬 기준
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        Pageable pageable = PageRequest.of(validPage, validSize, sort);
+
+        // Page<Board>
+        Page<Board> boardPage = boardRepository.findAllWithUserOrderByCreatedAtDesc(pageable);
+
+        return new BoardResponse.PageDto(boardPage);
+    }
+
     /**
      * 게시글 목록 조회
      * 트랜잭션
      *  - 읽기 전용 트랜잭션 사용중
      * @return 게시글 목록(생성일 기준으로 내림차순)
      */
-    public List<BoardResponse.ListDto> 게시글목록조회() {
-        // 자바 문법
-        // 데이터 타입을 변환해서 맞춰줘야함
-        List<Board> boardList = boardRepository.findAllWithUserOrderByCreatedAtDesc();
-
-        // List<Board> ---> List<BoardResponse.ListDto> 로 변환해야함
-        // 1. 반복문
+//    public List<BoardResponse.ListDto> 게시글목록조회() {
+//        // 자바 문법
+//        // 데이터 타입을 변환해서 맞춰줘야함
+//        List<Board> boardList = boardRepository.findAllWithUserOrderByCreatedAtDesc();
+//
+//        // List<Board> ---> List<BoardResponse.ListDto> 로 변환해야함
+//        // 1. 반복문
 //        List<BoardResponse.ListDto> dtoList = new ArrayList<>();
 //
 //        for (Board board : boardList) {
@@ -46,17 +70,17 @@ public class BoardService {
 //            dtoList.add(dto);
 //        }
 //        return dtoList;
-
-        // 2. 람다 표현식
+//
+//        // 2. 람다 표현식
 //        return  boardList.stream()
 //                .map(board -> new BoardResponse.ListDto(board))
 //                .collect(Collectors.toList());
-
-        // 3. 참조 메서드
-        return  boardList.stream()
-                .map(BoardResponse.ListDto::new)
-                .collect(Collectors.toList());
-    }
+//
+//        // 3. 참조 메서드
+//        return  boardList.stream()
+//                .map(BoardResponse.ListDto::new)
+//                .collect(Collectors.toList());
+//    }
 
     public BoardResponse.DetailDto 게시글상세조회(Long boardId) {
         Board board = boardRepository
