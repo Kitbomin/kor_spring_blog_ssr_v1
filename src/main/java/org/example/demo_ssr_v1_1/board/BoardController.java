@@ -137,7 +137,7 @@ public class BoardController {
     public String delete(@PathVariable Long id, HttpSession session) {
         // 1. 인증 처리 (o)
         // 1. 인증 처리 확인
-        User sessionUser = (User) session.getAttribute("sessionUSer");
+        User sessionUser = (User) session.getAttribute("sessionUser");
         boardService.게시글삭제(id, sessionUser.getId());
 
         return "redirect:/";

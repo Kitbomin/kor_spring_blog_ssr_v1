@@ -3,6 +3,7 @@ package org.example.demo_ssr_v1_1.board;
 import lombok.RequiredArgsConstructor;
 import org.example.demo_ssr_v1_1._core.errors.exception.Exception403;
 import org.example.demo_ssr_v1_1._core.errors.exception.Exception404;
+import org.example.demo_ssr_v1_1.reply.ReplyRepository;
 import org.example.demo_ssr_v1_1.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +30,7 @@ public class BoardService {
      * D - 의존성 역전 -> 추상화가 높은 녀석을 선언하는 것이 좋음
      */
     private final BoardRepository boardRepository;
+    private final ReplyRepository replyRepository;
 
     public BoardResponse.PageDto 게시글목록조회(int page, int size) {
         // page는 0부터 시작
@@ -142,7 +144,9 @@ public class BoardService {
             throw new Exception403("님꺼 아님");
         }
 
-        boardRepository.deleteById(boardId);
+        replyRepository.deleteByBoardId(boardId);
+
+        boardRepository.deleteById(boardId); // 제약 오류 발생
     }
 
 
