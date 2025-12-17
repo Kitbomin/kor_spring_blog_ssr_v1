@@ -3,6 +3,8 @@ package org.example.demo_ssr_v1_1.board;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.example.demo_ssr_v1_1._core.errors.exception.*;
+import org.example.demo_ssr_v1_1.reply.ReplyResponse;
+import org.example.demo_ssr_v1_1.reply.ReplyService;
 import org.example.demo_ssr_v1_1.user.User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +20,7 @@ import java.util.List;
 public class BoardController {
 
     private final BoardService boardService;
+    private final ReplyService replyService;
 
     /**
      * 게시글 수정 화면 요청
@@ -118,13 +121,13 @@ public class BoardController {
 
     /**
      * 게시글 상세 보기 화면 요청
-     * @param id
+     * @param boardId
      * @param model
      * @return
      */
     @GetMapping("board/{id}")
-    public String detail(@PathVariable Long id, Model model, HttpSession session) {
-        BoardResponse.DetailDto board = boardService.게시글상세조회(id);
+    public String detail(@PathVariable(name = "id") Long boardId, Model model, HttpSession session) {
+        BoardResponse.DetailDto board = boardService.게시글상세조회(boardId);
 
         // 세션에 로그인 사용자 정보 조회 (없을 수도 있음)
         User sessionUser = (User) session.getAttribute("sessionUser");
@@ -136,9 +139,14 @@ public class BoardController {
             isOwner = board.getUserId().equals(sessionUser.getId());
         }
 
+        // 댓글 목록 조회 화면 (추가)
+        // 로그인 하지 않은 상태에서 댓글 목록 요청할 시에 sessionUserId는 null 값임
+        Long sessionUserId = sessionUser != null ? sessionUser.getId() : null;
+        List<ReplyResponse.ListDto> replyList = replyService.댓글목록조회(boardId, sessionUserId);
 
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("board", board);
+        model.addAttribute("replyList", replyList);
         return "board/detail";
     }
 
