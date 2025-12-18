@@ -76,6 +76,9 @@ public class BoardController {
         int pageIndex = Math.max(0, page - 1);
         BoardResponse.PageDto boardPage = boardService.게시글목록조회(pageIndex, size, keyword);
         model.addAttribute("boardPage", boardPage);
+
+        // 검색 후에도 검색어를 남기기
+        model.addAttribute("keyword", keyword != null ? keyword : "");
         return "board/list";
     }
 
