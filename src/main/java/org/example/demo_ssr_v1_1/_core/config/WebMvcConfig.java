@@ -1,7 +1,9 @@
 package org.example.demo_ssr_v1_1._core.config;
 
+
 import lombok.RequiredArgsConstructor;
 import org.example.demo_ssr_v1_1._core.intercepter.LoginInterceptor;
+import org.example.demo_ssr_v1_1._core.intercepter.SessionInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -17,10 +19,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     // DI 처리
     private final LoginInterceptor loginInterceptor;
+    private final SessionInterceptor sessionInterceptor;
 
     // ps. 인터셉터는 당연히 여러개 등록 가능 함...
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+
+        registry.addInterceptor(sessionInterceptor)
+                .addPathPatterns("/**");
+
+
         // 1. 설정에 LoginInterceptor 를 등록하는 코드
         // 2. 인터셉터가 동작할 URL 패턴 지정
         // 3. 어떤 URL 요청이 로그인 여부를 필요할지 확인 해야 함.
@@ -29,7 +37,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         //    -> 단, 특정 URL 은 제외 시킬꺼야
         registry.addInterceptor(loginInterceptor)
                 // /** <-- 모든 URL 제외 대상이 됨. 일단 사용 안함
-                .addPathPatterns("/board/**", "/user/**", "reply/**")
+                .addPathPatterns("/board/**", "/user/**", "/reply/**")
                 .excludePathPatterns(
                         "/login",
                         "/join",
@@ -48,3 +56,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // /board/abc 같은 경우 매칭 되지 않음
     }
 }
+
+
+
+
+

@@ -32,22 +32,34 @@ public class BoardService {
     private final BoardRepository boardRepository;
     private final ReplyRepository replyRepository;
 
-    public BoardResponse.PageDto 게시글목록조회(int page, int size) {
-        // page는 0부터 시작
-        // 상한선 제한
-        // size는 기본값 5, 최소 1, 최대 50으로 제한해둘거임
-        // 페이지 번호가 음수가 되는 것을 막음
+    /**
+     * 게시글 목록 조회 (페이징 처리)
+     * 트랜잭션
+     *  - 읽기 전용 트랜잭션 - 성능 최적화
+     * @return 게시글 목록 (생성일 기준으로 내림차순)
+     */
+    public BoardResponse.PageDto 게시글목록조회(int page, int size, String keyword) {
+
+        //** 상한선 제한 **
+        // size 는 기본값 5, 최소 1, 최대 50으로 제한
+        // 페이지 번호가 음수가 되는 것을 막습니다.
         int validPage = Math.max(0, page); // 양수값 보장
-        // 최대값 제한 - Math.max(1, Math.min(50          => 최대값을 50으로 제한함
-        // 최소값 제한 - Math.max(1, Math.min(50, size))  => 최고값을 1로 보장하는거임
+        // 최대값 제한    // 최대값 제한 50으로 보장
+        // 최소값 제한    //  1 , -50 (양수값 보장) 최소값
         int validSize = Math.max(1, Math.min(50, size));
 
-        // 정렬 기준
-        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        // 정렬기준
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt" );
         Pageable pageable = PageRequest.of(validPage, validSize, sort);
+        // [ ..스프링...  ]  [검색][초기화]
 
-        // Page<Board>
-        Page<Board> boardPage = boardRepository.findAllWithUserOrderByCreatedAtDesc(pageable);
+        Page<Board> boardPage;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            boardPage = boardRepository.findByTitleContainingOrContentContaining(keyword.trim(), pageable);
+        } else {
+            boardPage = boardRepository.findAllWithUserOrderByCreatedAtDesc(pageable);
+        }
+
 
         return new BoardResponse.PageDto(boardPage);
     }
