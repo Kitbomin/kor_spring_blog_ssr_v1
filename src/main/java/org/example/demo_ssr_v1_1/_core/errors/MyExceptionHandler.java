@@ -99,30 +99,42 @@ public class MyExceptionHandler {
         return "err/500";
     }
 
-
-    // 404 인가 오류
-    // 템플릿 파일에서 세션 정보와 / Request 객체를 바로 접근 못하기 막았음 (기본값)
-    @ExceptionHandler(Exception404.class)
-    public String ex404(Exception404 e, HttpServletRequest request, Model model) {
-        log.warn("=== 404 에러 발생  ===");
+    // 클래스 로딩 오류 처리 (NoClassDefFoundException, ClassNotFoundException 등이 잡힘)
+    @ExceptionHandler(Error.class)
+    public String handleError(Error e, HttpServletRequest request, Model model) {
+        log.warn("=== 예상하지 못한 에러 발생  ===");
         log.warn("요청 URL : {}", request.getRequestURL());
         log.warn("에러 메세지 : {}", e.getMessage());
         log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
-        //request.setAttribute("msg", e.getMessage());
-        model.addAttribute("msg", e.getMessage());
-        return "err/404";
-    }
+        model.addAttribute("msg", "심각한 오류 발생(클래스를 찾을 수 없습니다)");
 
-    // 500 서버 내부 오류
-    @ExceptionHandler(Exception500.class)
-    public String ex500(Exception500 e, HttpServletRequest request) {
-        log.warn("=== 500 에러 발생  ===");
-        log.warn("요청 URL : {}", request.getRequestURL());
-        log.warn("에러 메세지 : {}", e.getMessage());
-        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
-        request.setAttribute("msg", e.getMessage());
         return "err/500";
     }
+
+
+//    // 404 인가 오류
+//    // 템플릿 파일에서 세션 정보와 / Request 객체를 바로 접근 못하기 막았음 (기본값)
+//    @ExceptionHandler(Exception404.class)
+//    public String ex404(Exception404 e, HttpServletRequest request, Model model) {
+//        log.warn("=== 404 에러 발생  ===");
+//        log.warn("요청 URL : {}", request.getRequestURL());
+//        log.warn("에러 메세지 : {}", e.getMessage());
+//        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
+//        //request.setAttribute("msg", e.getMessage());
+//        model.addAttribute("msg", e.getMessage());
+//        return "err/404";
+//    }
+
+//    // 500 서버 내부 오류
+//    @ExceptionHandler(Exception500.class)
+//    public String ex500(Exception500 e, HttpServletRequest request) {
+//        log.warn("=== 500 에러 발생  ===");
+//        log.warn("요청 URL : {}", request.getRequestURL());
+//        log.warn("에러 메세지 : {}", e.getMessage());
+//        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
+//        request.setAttribute("msg", e.getMessage());
+//        return "err/500";
+//    }
 
     // 기타 모든 실행시점 오류 처리
     @ExceptionHandler(RuntimeException.class)
