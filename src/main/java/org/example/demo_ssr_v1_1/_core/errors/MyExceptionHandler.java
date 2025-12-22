@@ -3,13 +3,12 @@ package org.example.demo_ssr_v1_1._core.errors;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.example.demo_ssr_v1_1._core.errors.exception.*;
-import org.example.demo_ssr_v1_1._core.errors.exception.Exception400;
-import org.example.demo_ssr_v1_1._core.errors.exception.Exception401;
-import org.example.demo_ssr_v1_1._core.errors.exception.Exception403;
-import org.example.demo_ssr_v1_1._core.errors.exception.Exception404;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -20,10 +19,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Slf4j
 public class MyExceptionHandler {
 
-    // 내가 지켜볼 예외를 명시를 해주면 ControllerAdvice가 가지고와서 처리
+    // 내가 지켜볼 예외를 명시를 해주면 ControllerAdvice 가 가지고와 처리 함
     @ExceptionHandler(Exception400.class)
     public String ex400(Exception400 e, HttpServletRequest request) {
-        log.warn("=== 400 에러 발생 ===");
+        log.warn("=== 400 에러 발생  ===");
         log.warn("요청 URL : {}", request.getRequestURL());
         log.warn("에러 메세지 : {}", e.getMessage());
         log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
@@ -32,20 +31,33 @@ public class MyExceptionHandler {
     }
 
     // 401 인증 오류
+//    @ExceptionHandler(Exception401.class)
+//    public String ex401(Exception401 e, HttpServletRequest request, Model model) {
+//        log.warn("=== 401 에러 발생  ===");
+//        log.warn("요청 URL : {}", request.getRequestURL());
+//        log.warn("에러 메세지 : {}", e.getMessage());
+//        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
+//        //request.setAttribute("msg", e.getMessage());
+//        model.addAttribute("msg", e.getMessage());
+//        return "err/401";
+//    }
     @ExceptionHandler(Exception401.class)
-    public String ex401(Exception401 e, HttpServletRequest request) {
-        log.warn("=== 401 에러 발생 ===");
-        log.warn("요청 URL : {}", request.getRequestURL());
-        log.warn("에러 메세지 : {}", e.getMessage());
-        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
-        request.setAttribute("msg", e.getMessage());
-        return "err/401";
+    @ResponseBody
+    public ResponseEntity<String> ex401(Exception401 e) {
+        String script = "<script>" +
+                "alert('" + e.getMessage() +"');" +
+                "location.href = '/login';" +
+                "</script>";
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .contentType(MediaType.TEXT_HTML)
+                .body(script);
     }
 
     // 403 인가 오류
 //    @ExceptionHandler(Exception403.class)
-//    public String ex403(Exception403 e, HttpServletRequest request) {
-//        log.warn("=== 403 에러 발생 ===");
+//    public String ex401(Exception403 e, HttpServletRequest request) {
+//        log.warn("=== 403 에러 발생  ===");
 //        log.warn("요청 URL : {}", request.getRequestURL());
 //        log.warn("에러 메세지 : {}", e.getMessage());
 //        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
@@ -56,7 +68,6 @@ public class MyExceptionHandler {
     @ExceptionHandler(Exception403.class)
     @ResponseBody
     public ResponseEntity<String> ex403(Exception403 e, HttpServletRequest request) {
-
         String script = "<script>alert('"+e.getMessage()+"');" +
                 "history.back();" +
                 "</script>";
@@ -68,21 +79,44 @@ public class MyExceptionHandler {
     }
 
 
-    // 404
-    @ExceptionHandler(Exception404.class)
-    public String ex404(Exception404 e, HttpServletRequest request) {
-        log.warn("=== 404 에러 발생 ===");
+    // 데이터 베이스 제약조건 위한 예외 처리
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public String handleDataViolationException(DataIntegrityViolationException e,
+                                               HttpServletRequest request, Model model) {
+        log.warn("=== 데이터베이스 제약조건 위반 오류 발생  ===");
         log.warn("요청 URL : {}", request.getRequestURL());
         log.warn("에러 메세지 : {}", e.getMessage());
         log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
-        request.setAttribute("msg", e.getMessage());
+
+        // 외래키 제약 조건 위반인 경우
+        String errorMessage = e.getMessage();
+        if (errorMessage != null && errorMessage.contains("FOREIGN KEY")) {
+            model.addAttribute("msg", "관련된 데이터가 있어 삭제할 수 없습니다.");
+        } else {
+            model.addAttribute("msg", "데이터베이스 제약 조건 위반");
+
+        }
+        return "err/500";
+    }
+
+
+    // 404 인가 오류
+    // 템플릿 파일에서 세션 정보와 / Request 객체를 바로 접근 못하기 막았음 (기본값)
+    @ExceptionHandler(Exception404.class)
+    public String ex404(Exception404 e, HttpServletRequest request, Model model) {
+        log.warn("=== 404 에러 발생  ===");
+        log.warn("요청 URL : {}", request.getRequestURL());
+        log.warn("에러 메세지 : {}", e.getMessage());
+        log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
+        //request.setAttribute("msg", e.getMessage());
+        model.addAttribute("msg", e.getMessage());
         return "err/404";
     }
 
-    // 500
+    // 500 서버 내부 오류
     @ExceptionHandler(Exception500.class)
     public String ex500(Exception500 e, HttpServletRequest request) {
-        log.warn("=== 500 에러 발생 ===");
+        log.warn("=== 500 에러 발생  ===");
         log.warn("요청 URL : {}", request.getRequestURL());
         log.warn("에러 메세지 : {}", e.getMessage());
         log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
@@ -90,14 +124,18 @@ public class MyExceptionHandler {
         return "err/500";
     }
 
+    // 기타 모든 실행시점 오류 처리
     @ExceptionHandler(RuntimeException.class)
-    public String handleRuntimeException(RuntimeException e, HttpServletRequest request) {
-        log.warn("=== 예상하지 못한 에러 발생 ===");
+    public String handleRuntimeException(RuntimeException e,
+                                         HttpServletRequest request) {
+        log.warn("=== 예상하지 못한 에러 발생  ===");
         log.warn("요청 URL : {}", request.getRequestURL());
         log.warn("에러 메세지 : {}", e.getMessage());
         log.warn("예외 클래스 : {}", e.getClass().getSimpleName());
         request.setAttribute("msg", e.getMessage());
-
         return "err/500";
     }
+
+
+
 }

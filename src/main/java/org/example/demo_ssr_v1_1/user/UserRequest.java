@@ -61,13 +61,12 @@ public class UserRequest {
     @Data
     public static class UpdateDTO {
         private String password;
-//        private String email;
+        private MultipartFile profileImage; // form 에 name속성 이름과 동일해야 함
+        private String profileImageFilename; // 추후  user.update 메서드에서 사용 함
+
         // username 은 제외: 변경 불가는한 고유 식별자
 
         public void validate() {
-//            if(email == null  || email.trim().isEmpty()) {
-//                throw new IllegalArgumentException("이메일을 입력해주세요");
-//            }
             if(password == null || password.trim().isEmpty()) {
                 throw new IllegalArgumentException("비밀번호를 입력해주세요");
             }
