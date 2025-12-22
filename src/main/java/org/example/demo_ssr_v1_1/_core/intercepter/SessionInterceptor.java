@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.example.demo_ssr_v1_1.user.User;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.ModelAndView;
  * 로그인 사용자 정보를 쓸 수 있게 모델에 주입 시킴
  */
 @Component
+//@Configuration => 이것도 걸어도 되긴 함 -> 다만 @Bean 걸어야함
 public class SessionInterceptor implements HandlerInterceptor {
 
     @Override
