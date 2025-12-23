@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
@@ -50,15 +51,20 @@ public class User {
     @JoinColumn(name = "user_id")
     private List<UserRole> roles = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false) @ColumnDefault("'LOCAL'") // 문자열이니까 홑따옴표 필수
+    private OAuthProvider provider;
+
     @Builder
     public User(Long id, String username, String password,
-                String email, Timestamp createdAt, String profileImage) {
+                String email, Timestamp createdAt, String profileImage, OAuthProvider provider) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.email = email;
         this.createdAt = createdAt;
         this.profileImage = profileImage;  // 추가
+        this.provider = (provider == null) ? OAuthProvider.LOCAL : provider;
     }
 
     // 회원정보 수정 비즈니스 로직 추가
@@ -113,4 +119,26 @@ public class User {
     public String getRoleDisplay() {
         return isAdmin() ? "ADMIN" : "USER";
     }
+
+    /**
+     * 분기 처리 - 요구사항
+     * mustache 화면에서는 서버에 저장된 이미지든, url 이미지이든
+     * 그냥 getProfilePath 변수를 호출하면 알아서 셋팅되게 하고 싶음
+     */
+    public String getProfilePath() {
+        if (this.profileImage == null) {
+            return null;
+        }
+        // http 로 시작하면 소셜 이미지 url 그대로 리턴
+        // 아니면 로컬이미지 폴더 경로를 붙여서 리턴 처리 할거임
+        if (this.profileImage.startsWith("http")) {
+            return this.profileImage;
+        }
+        return "/images/" + this.profileImage;
+    }
+
+    // 이거 필요없음.. local 일때만 드러나게 하면 되니까
+//    public boolean isKakao() {
+//        return !this.provider.equals(OAuthProvider.KAKAO);
+//    }
 }

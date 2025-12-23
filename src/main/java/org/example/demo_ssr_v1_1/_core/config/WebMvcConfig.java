@@ -44,6 +44,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/login",
                         "/join",
                         "/logout",
+                        "/user/kakao",   // 카카오 리다이렉트 uri 제외
                         "/board/list",
                         "/",
                         "/board/{id:\\d+}",

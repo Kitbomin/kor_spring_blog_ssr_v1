@@ -1,11 +1,24 @@
 package org.example.demo_ssr_v1_1.user;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.UUID;
 
 /**
  *  사용자 Controller (표현 계층)
@@ -22,6 +35,135 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class UserController {
 
     private final UserService userService;
+
+    @Value("${oauth.kakao.client-id}")
+    private String clientId;
+
+    @Value("${tenco.key}")
+    private String tencoKey;
+
+    //Todo - 테스트용 코드 - 삭제 예정
+//    @PostConstruct // 바로 실행시켜줌
+//    public void init() {
+//        System.out.println("현재 적용된 카카오 클라이언트 키 확인: " + clientId);
+//        System.out.println("현재 적용된 카카오 시크릿 키 확인: " + tencoKey);
+//    }
+
+    /**
+     * [흐름]
+     * 1. 인가 코드 받기
+     * 2. 토큰 발급 요청(JWT)
+     * 3. 사용자 정보를 요청 가능함(닉네임, 프로필, 아이디 등...)
+     * 4. 우리 서버에 로그인/회원가입을 처리함
+     */
+    @GetMapping("/user/kakao")
+    public String kakaoCallback(@RequestParam(name = "code") String code, HttpSession session) {
+
+        // 1. 인가 코드 받아서 확인
+        System.out.println("1. 카카오 인가 코드 확인: " + code);
+
+        // 2. 토큰 발급 요청 (https://kauth.kakao.com/oauth/token) - POST로 던질거임
+        // 2-1. HTTP 헤더 커스텀 - Content-Type: application/x-www-form-urlencoded;charset=utf-8
+
+        // 2-2.
+        RestTemplate restTemplate = new RestTemplate();
+
+        // 2-3. HTTP 메시지 헤더 구성
+        HttpHeaders tokenHeaders = new HttpHeaders();
+
+        tokenHeaders.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+
+        // 2-4. HTTP 메서드 바디 구성 (POST)
+        MultiValueMap<String, String> tokenParams = new LinkedMultiValueMap<>();
+        tokenParams.add("grant_type", "authorization_code");
+        tokenParams.add("client_id", clientId);
+        tokenParams.add("redirect_uri", "http://localhost:8081/user/kakao");
+        tokenParams.add("code", code);
+        // 시크릿 키 추가
+        tokenParams.add("client_secret", "ahN9KMQTYrCuK6PvVeTvIjJSb51ea0di");
+
+        // 2-5. Body + Header 구성
+        HttpEntity<MultiValueMap<String, String>> tokenRequest = new HttpEntity<>(tokenParams, tokenHeaders);
+
+        // 2-6. 요청 하고 JWT 토큰 응답 받기 (= 카카오 액세스 토큰)
+        ResponseEntity<UserResponse.OAuthToken> tokenResponse = restTemplate.exchange(
+                "https://kauth.kakao.com/oauth/token",
+                HttpMethod.POST, tokenRequest, UserResponse.OAuthToken.class);
+
+        // JWT 토큰 확인 (액세스 토큰)
+        System.out.println(tokenResponse.getHeaders());
+        System.out.println(tokenResponse.getBody().getAccessToken());
+        System.out.println(tokenResponse.getBody().getExpiresIn());
+
+        // -------------------- //
+        // 3. 액세스 토큰을 받았으니 카카오 자원 서버(User 정보 등)에 사용자에 대한 정보를 요청이 가능
+        // GET/POST https://kapi.kakao.com/v2/user/me
+
+        // 3-1. HTTP 클라이언트 선언
+        RestTemplate profileRt = new RestTemplate();
+
+        // 3-2. HTTP 메세지 헤더 커스텀
+        HttpHeaders profileHeaders = new HttpHeaders();
+        // Bearer + 공백 한칸 무조건 보장
+        profileHeaders.add("Authorization", "Bearer " + tokenResponse.getBody().getAccessToken());
+        profileHeaders.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+
+        // 3-3. 요청 메세지 (요청 엔티티) 생성 (요청 바디 없음 -> 안 만들어도 된다는거)
+        HttpEntity<Void> profileRequest = new HttpEntity<>(profileHeaders);
+
+        ResponseEntity<UserResponse.KakaoProfile> profileResponse = profileRt.exchange(
+                "https://kapi.kakao.com/v2/user/me",
+                HttpMethod.POST, profileRequest, UserResponse.KakaoProfile.class);
+
+        // 3-4. 사용자 정보 수신 완료
+        System.out.println(profileResponse.getBody().getId());
+        System.out.println(profileResponse.getBody().getProperties().getProfileImage());
+
+
+        // -------------- //
+        // 4. 최초 사용자일 시 강제 회원가입 처리 및 로그인 처리
+        // DB에 회원 가입 및 여부 확인 필오 -> User Entity 수정
+        // 소셜 로그인 닉네임과 기존 회원 가입 닉네임이 중복될 수 있음
+        UserResponse.KakaoProfile kakaoProfile = profileResponse.getBody();
+
+        // username = 000_xxxxx
+        String username = kakaoProfile.getProperties().getNickname() + "_" + kakaoProfile.getId();
+
+        // 새로 생성한 username이 DB에 있다면? -> 이미 회원가입 전적이 있는 회원
+        // 사용자 이름 조회 쿼리를 날ㄹ려야함
+        // userOrigin => User 이거나 null 로 반환됨
+        User userOrigin = userService.사용자이름조회(username);
+        if (userOrigin == null) {
+            // 최초 카카오 소셜 로그인 사용자라고 판단
+            System.out.println("기존 회원이 아니므로 자동 회원가입 진해앵");
+
+            User newUser = User.builder()
+                    .username(username)
+                    .password(tencoKey) // 소셜 로그인은 임시 비밀번호로 설정함
+                    .email(username + "@kakao.com") // 선택사항 (카카오 이메일 -> 비즈니스 앱 신청)
+                    .provider(OAuthProvider.KAKAO)
+                    .build();
+
+            // 프로필 이미지가 있다면 설정 (카카오 사용자 정보에)
+            String profileImage = kakaoProfile.getProperties().getProfileImage();
+            if (profileImage != null && !profileImage.isEmpty()) {
+                newUser.setProfileImage(profileImage); // URL 그대로 저장
+            }
+
+            userService.소셜회원가입(newUser);
+
+            // 반드시 필요한 코드 !!!!
+            userOrigin = newUser; // 반드시 넣어줘야함 -> 로그인처리 해야해서
+
+        } else {
+            System.out.println("이미 가입된 회원이에용 바로 로그인처리할게요ㅗㅇ");
+        }
+
+        session.setAttribute("sessionUser", userOrigin);
+
+        return "redirect:/";
+    }
+
 
     // 프로필 이미지 삭제 하기
     @PostMapping("/user/profile-image/delete")
@@ -113,8 +255,6 @@ public class UserController {
             return "user/login-form";
         }
     }
-
-
 
 
     // 회원가입 화면 요청

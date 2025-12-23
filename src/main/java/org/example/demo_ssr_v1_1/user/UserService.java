@@ -161,4 +161,15 @@ public class UserService {
 
         return userEntity;
     }
+
+    public User 사용자이름조회(String username) {
+        return userRepository.findByUsername(username)
+                .orElse(null);
+    }
+
+    public void 소셜회원가입(User user) {
+        userRepository.save(user);
+    }
+
+
 }
