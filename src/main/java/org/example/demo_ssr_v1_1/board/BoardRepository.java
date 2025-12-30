@@ -32,7 +32,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
      * countQuery - 전체 게시글에 개수를 빠르게 가져오기 위해 사용한다. 성능 문제
      */
     @Query(value = "SELECT DISTINCT b FROM Board b JOIN FETCH b.user ORDER BY b.createdAt DESC",
-            countQuery = "SELECT COUNT(DISTINCT b) FROM Board b")
+    countQuery = "SELECT COUNT(DISTINCT b) FROM Board b")
     Page<Board> findAllWithUserOrderByCreatedAtDesc(Pageable pageable);
 
     /**
@@ -40,8 +40,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
      */
     @Query(value = "SELECT DISTINCT b FROM Board b JOIN FETCH b.user " +
             "WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "   OR LOWER(b.content) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "ORDER BY b.createdAt DESC",
+            "   OR LOWER(b.content) LIKE LOWER(CONCAT('%', :keyword, '%')) ",
             countQuery = "SELECT COUNT(DISTINCT b) FROM Board b " +
                     "WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                     "   OR LOWER(b.content) LIKE LOWER(CONCAT('%', :keyword, '%'))")

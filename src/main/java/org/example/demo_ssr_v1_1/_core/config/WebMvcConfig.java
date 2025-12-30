@@ -1,10 +1,16 @@
 package org.example.demo_ssr_v1_1._core.config;
 
+
 import lombok.RequiredArgsConstructor;
 import org.example.demo_ssr_v1_1._core.intercepter.AdminInterceptor;
 import org.example.demo_ssr_v1_1._core.intercepter.LoginInterceptor;
 import org.example.demo_ssr_v1_1._core.intercepter.SessionInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -28,7 +34,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
 
         registry.addInterceptor(sessionInterceptor)
-                .addPathPatterns("/**");
+                        .addPathPatterns("/**");
 
 
         // 1. 설정에 LoginInterceptor 를 등록하는 코드
@@ -44,7 +50,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/login",
                         "/join",
                         "/logout",
-                        "/user/kakao",   // 카카오 리다이렉트 uri 제외
+                        "/user/kakao",    // 카카오 리다이렉트 URI는 제외
                         "/board/list",
                         "/",
                         "/board/{id:\\d+}",
@@ -54,9 +60,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/favicon.io",
                         "/h2-console/**"
                 );
-        // ||d+ 는 정규표현식으로 1개 이상의 숫자를 의미한다.
-        // /board/1, board/1234 <-- 허용
-        // /board/abc 같은 경우 매칭 되지 않음
+                // ||d+ 는 정규표현식으로 1개 이상의 숫자를 의미한다. 
+                // /board/1, board/1234 <-- 허용 
+                // /board/abc 같은 경우 매칭 되지 않음
 
         registry.addInterceptor(adminInterceptor)
                 // 관리자 전용 페이지에만 적용 처리
@@ -83,7 +89,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // file:images/  앞에 슬러시가 없기 때문에 상대 경로를 의미한다.
         // file:///D:upload/ <-- 내 컴퓨터 절대 경로를 의미한다.
     }
+
+    @Bean // IoC 처리 (즉 스프링 컨테이너에 싱글톤 패턴으로 객체가 메모리에 올라 간다)
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }
+
 
 
 

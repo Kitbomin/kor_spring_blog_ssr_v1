@@ -2,6 +2,7 @@ package org.example.demo_ssr_v1_1.board;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.example.demo_ssr_v1_1._core.errors.exception.*;
 import org.example.demo_ssr_v1_1.reply.ReplyResponse;
 import org.example.demo_ssr_v1_1.reply.ReplyService;
@@ -19,7 +20,7 @@ import java.util.List;
 public class BoardController {
 
     private final BoardService boardService;
-    private final ReplyService replyService;
+    private final ReplyService replyService; // 추가
 
     /**
      * 게시글 수정 화면 요청
@@ -31,15 +32,15 @@ public class BoardController {
     @GetMapping("/board/{id}/update")
     public String updateForm(@PathVariable Long id,Model model, HttpSession session) {
 
-        // 1. 인증 검사 (0)
-        User sessionUser = (User)session.getAttribute("sessionUser"); // sessionUser -> 상수
-        // LoginInterceptor 가 알아서 처리 해줌 !!
+       // 1. 인증 검사 (0)
+       User sessionUser = (User)session.getAttribute("sessionUser"); // sessionUser -> 상수
+       // LoginInterceptor 가 알아서 처리 해줌 !!
 
-        // 2. 인가 검사 (0)
-        BoardResponse.UpdateFormDto board = boardService.게시글수정화면(id, sessionUser.getId());
+       // 2. 인가 검사 (0)
+       BoardResponse.UpdateFormDTO board = boardService.게시글수정화면(id, sessionUser.getId());
 
-        model.addAttribute("board", board);
-        return "board/update-form";
+       model.addAttribute("board", board);
+       return "board/update-form";
     }
 
     /**
@@ -52,12 +53,10 @@ public class BoardController {
     @PostMapping("/board/{id}/update")
     public String updateProc(@PathVariable Long id,
                              BoardRequest.UpdateDTO updateDTO, HttpSession session) {
-
         // 1. 인증 처리 (o)
-        User sessionUser = (User)session.getAttribute("sessionUser");
+        User sessionUser =  (User)session.getAttribute("sessionUser");
         updateDTO.validate();
-        boardService.게시글수정(updateDTO, id, sessionUser.getId());
-
+        boardService.게시글수정(updateDTO,id,sessionUser.getId());
         return "redirect:/board/list";
     }
 
@@ -69,18 +68,19 @@ public class BoardController {
      */
     @GetMapping({"/board/list", "/"})
     public String boardList(Model model,
-                            @RequestParam(defaultValue = "1") int page,
-                            @RequestParam(defaultValue = "3") int size,
-                            @RequestParam(required = false) String keyword) {
+                                 @RequestParam(defaultValue = "1") int page,
+                                 @RequestParam(defaultValue = "3") int size,
+                                 @RequestParam(required = false) String keyword) {
 
         int pageIndex = Math.max(0, page - 1);
-        BoardResponse.PageDto boardPage = boardService.게시글목록조회(pageIndex, size, keyword);
+        BoardResponse.PageDTO boardPage = boardService.게시글목록조회(pageIndex, size, keyword);
+        //이 코드는  머스태치 파일에  boardPage 데이터를 내려 주고 있다. 
         model.addAttribute("boardPage", boardPage);
-
-        // 검색 후에도 검색어를 남기기
         model.addAttribute("keyword", keyword != null ? keyword : "");
+        
         return "board/list";
     }
+
 
     /**
      * TODO - 삭제 예정
@@ -90,11 +90,14 @@ public class BoardController {
      */
 //    @GetMapping({"/board/list", "/"})
 //    public String boardList(Model model) {
-//        List<BoardResponse.ListDto> boardList = boardService.게시글목록조회();
-//
+//        List<BoardResponse.ListDTO> boardList = boardService.게시글목록조회();
 //        model.addAttribute("boardList", boardList);
+//
 //        return "board/list";
 //    }
+
+
+
 
     /**
      * 게시글 작성 화면 요청
@@ -115,10 +118,9 @@ public class BoardController {
      */
     @PostMapping("/board/save")
     public String saveProc(BoardRequest.SaveDTO saveDTO, HttpSession session) {
-        // 1. 인증 처리 확인
-
-        // 2. 유효성 검사(형식), 논리적인 검사는 서비스단에서 함
-        User sessionUser = (User) session.getAttribute("sessionUSer");
+        // 1. 인증 검사 - 인터셉터
+        // 2. 유성검사 (형식) , 논리적인 검사는 (서비스단)
+        User sessionUser = (User)session.getAttribute("sessionUser");
         boardService.게시글작성(saveDTO, sessionUser);
         return "redirect:/";
     }
@@ -133,9 +135,8 @@ public class BoardController {
     public String delete(@PathVariable Long id, HttpSession session) {
         // 1. 인증 처리 (o)
         // 1. 인증 처리 확인
-        User sessionUser = (User) session.getAttribute("sessionUser");
+        User sessionUser = (User)session.getAttribute("sessionUser");
         boardService.게시글삭제(id, sessionUser.getId());
-
         return "redirect:/";
     }
 
@@ -147,26 +148,27 @@ public class BoardController {
      */
     @GetMapping("board/{id}")
     public String detail(@PathVariable(name = "id") Long boardId, Model model, HttpSession session) {
-        BoardResponse.DetailDto board = boardService.게시글상세조회(boardId);
 
-        // 세션에 로그인 사용자 정보 조회 (없을 수도 있음)
-        User sessionUser = (User) session.getAttribute("sessionUser");
+        BoardResponse.DetailDTO board = boardService.게시글상세조회(boardId);
 
+        // 세션에 로그인 사용자 정보 조회(없을 수도 있음)
+        User sessionUser = (User)  session.getAttribute("sessionUser");
         boolean isOwner = false;
-
-//        if (board.getUserId().equals(sessionUser.getId())) {}
-        if (sessionUser != null && board.getUserId() != null) {
+        // 힌트 - 만약 응답 DTO 에 담겨 있는 정보과
+        // SessionUser 담겨 정보를 확인하여 처리 가능 
+        if(sessionUser != null && board.getUserId() != null) {
             isOwner = board.getUserId().equals(sessionUser.getId());
         }
 
-        // 댓글 목록 조회 화면 (추가)
-        // 로그인 하지 않은 상태에서 댓글 목록 요청할 시에 sessionUserId는 null 값임
+        // 댓글 목록 조회 (추가)
+        // 로그인 안 한 상태에서 댓글 목록 요청시에 sessionUserId 는 null 값이다.
         Long sessionUserId = sessionUser != null ? sessionUser.getId() : null;
-        List<ReplyResponse.ListDto> replyList = replyService.댓글목록조회(boardId, sessionUserId);
+        List<ReplyResponse.ListDTO> replyList = replyService.댓글목록조회(boardId, sessionUserId);
 
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("board", board);
         model.addAttribute("replyList", replyList);
+
         return "board/detail";
     }
 

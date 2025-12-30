@@ -1,3 +1,4 @@
+
 -- User 테이블 데이터 (5명의 사용자)
 INSERT INTO user_tb (username, password, email, created_at) VALUES
                                                                 ('admin', '1234', 'admin@blog.com', NOW()),
@@ -6,6 +7,7 @@ INSERT INTO user_tb (username, password, email, created_at) VALUES
                                                                 ('hong', '1234', 'hong@naver.com', NOW()),
                                                                 ('kim', '1234', 'kim@daum.net', NOW());
 
+-- UserRole 테이블 데이터 (사용자 역할: ADMIN / USER)
 INSERT INTO user_role_tb (role, user_id) VALUES
                                              ('ADMIN', 1), ('USER', 1),
                                              ('USER', 2), ('USER', 3), ('USER', 4), ('USER', 5);

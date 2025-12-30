@@ -2,13 +2,13 @@
 
 <div class="container p-5">
 
-    <!--
-        파일 업로드를 위한 form 태그 설정
-        enctype="multipart/form-data : 파일 형식을 포함한 MIME 타입을 의미한다
-        즉, 이 속성 없이는 파일이 서버로 전송되지 않는다 !!!
-        일반 텍스트 데이터는 - application/x-www-form-urlencoded
-        파일 데이터는 - multipart/form-data 필요 하다.
-    -->
+        <!--
+            파일 업로드를 위한 form 태그 설정
+            enctype="multipart/form-data : 파일 형식을 포함한 MIME 타입을 의미한다
+            즉, 이 속성 없이는 파일이 서버로 전송되지 않는다 !!!
+            일반 텍스트 데이터는 - application/x-www-form-urlencoded
+            파일 데이터는 - multipart/form-data 필요 하다.
+        -->
     <div class="card">
         <div class="card-header"><b>회원가입을 해주세요</b></div>
         <div class="card-body">
@@ -19,18 +19,126 @@
                 <div class="mb-3">
                     <input type="password" class="form-control" placeholder="Enter password" name="password">
                 </div>
+
+                <!-- 이메일 입력 및 인증번호 발송 -->
                 <div class="mb-3">
-                    <input type="email" class="form-control" placeholder="Enter email" name="email">
+                    <div class="input-group">
+                        <input type="email" class="form-control" placeholder="Enter email" id="email" name="email" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="callSendApi()">인증 번호 전송</button>
+                    </div>
                 </div>
+
+                <!-- 인증 번호 입력 (처음에는 숨김처리) -->
+                <div class="mb-3" id="code-box" style="display: none">
+                    <label for="">인증 번호</label>
+                    <div class="input-group">
+                        <input type="text" id="code" class="form-control" placeholder="인증번호 6자리 입력" maxlength="6" >
+                        <button type="button" class="btn btn-outline-secondary" onclick=callVerifyApi()>확인</button>
+                    </div>
+                    <!-- 인증결과 메시지 표시 영역 -->
+                    <div id="msg" class="form-text">
+
+                    </div>
+                </div>
+
+                <!-- 인증 완료 여부 저장 (hidden 필드) -->
+                <input type="hidden" id="isEmailVerified" value="false">
+
                 <div class="mb-3">
-                    <label for="profileImage" class="form-label">프로필 사진(선택사항)</label>
-                    <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
-                    <small class="form-text text-muted mt-1">이미지 파일만 업로드 가능합니다(JPG, PNG, GIF)</small>
+                   <label for="profileImage" class="form-label">프로필 사진(선택사항)</label>
+                   <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
+                   <small class="form-text text-muted mt-1">이미지 파일만 업로드 가능합니다(JPG, PNG, GIF)</small>
                 </div>
                 <button type="submit" class="btn btn-primary form-control">회원가입</button>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    // 이메일 전송 API 호출 (AJAX)
+    async function callSendApi() {
+        // DOM 엘리먼트에 있는 value 값을 가져와야 함 -> 사용자가 입력한 이메일 주소를 가져와야함
+        // 값이 담긴 상태
+        let email = document.querySelector("#email").value;
+
+        if (!email) {
+            alert("이메일 입력 요망");
+            return;
+        }
+
+        // js 에서 통신하는 코드는 기본적으로 try catch 무조건 걸어야함
+        try {
+            // fetch API로 POST 요청해보기
+            let response = await fetch("/api/email/send", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({email: email}) //js 객체를 JSON 문자열로 변환 처리
+            });
+
+            // 응답 처리
+            if (response.ok) {
+                // response.ok? HTTP 상태 코드가 200 ~ 299 범위를 의미함
+                alert("인증 번호가 메일로 전송되었습니다. 메일을 확인해주세ㅛㅇ");
+                document.querySelector("#code-box").style.display = "block";
+            } else {
+                // 서버에서 에러 응답 (400, 500)
+                let error = response.json(); // "문자열" --> JS 객체로 변환됨
+                alert("이메일 전송 실패");
+            }
+        } catch (e) {
+            // 네트워크 오류 처리
+            alert("서버 통신 오류 " + e.message); // 안쓰는게 나음
+        }
+    }
+
+    // 인증번호 확인 API 호출 (AJAX)
+    async function callVerifyApi() {
+        // 이메일 인증번호 확인 시에는 반드시 이메일과 인증번호를 동시에 비교해야함
+        let email = document.querySelector("#email").value;
+        let code = document.querySelector("#code").value;
+
+        if (!code) {
+            alert("인증번호를 입력해주세요");
+            return;
+        }
+
+        try {
+            // fetch API로 POST 요청
+            let response = await fetch("/api/email/verify", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({email: email, code: code})
+            });
+
+            let result = await response.json();
+            let msgBox = document.querySelector("#msg");
+
+            if (response.ok) {
+                // 인증 성공
+                msgBox.innerHTML = "<span style='color: green' >인증 되었습니다.</span>"
+
+                // dom 접근해서 false 값을 true로 바꿀거임
+                document.querySelector("#isEmailVerified").value = true;
+
+                // 이메일 수정 불가 처리
+                document.querySelector("#email").readOnly = true;
+            } else {
+                msgBox.innerHTML = "<span style='color: red' >인증번호가 틀렸습니다.</span>"
+
+                // dom 접근
+                document.querySelector("#isEmailVerified").value = false;
+            }
+        } catch (e) {
+            console.log(e);
+            alert("네트워크 오류 발생");
+        }
+
+    }
+</script>
 
 {{> layout/footer}}

@@ -7,16 +7,17 @@ import org.example.demo_ssr_v1_1.user.User;
 // 컨트롤러와 비즈니스 로직 사이에서 데이터를 전송하는 객체
 public class BoardRequest {
 
-    // 게시글 저장 dto
+    // 게시글 저장 DTO
     @Data
     public static class SaveDTO {
         private String title;
         private String content;
-        private User user;
+        private String username;
 
         public Board toEntity(User user) {
             return new Board(title, content, user);
         }
+
     }
 
     @Data
@@ -26,16 +27,14 @@ public class BoardRequest {
         private String username;
 
         // 검증 메서드
-        public void validate() {
-            if (title == null || title.trim().isEmpty()) {
-                throw new IllegalArgumentException("제목은 필수에용ㅇ");
+        public void  validate() {
+            if(title == null || title.trim().isEmpty()) {
+                throw new IllegalArgumentException("제목은 필수 입니다");
             }
 
-            if (content == null || content.trim().isEmpty()) {
-                throw new IllegalArgumentException("내용은 필수값입니다.");
+            if(content == null || content.trim().isEmpty()) {
+                throw new IllegalArgumentException("내용은 필수 입니다");
             }
-
-
         }
 
     }

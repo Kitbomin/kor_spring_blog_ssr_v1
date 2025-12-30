@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data
-// 요청할 때 보내줘야하는...? Request Dto임
+// 요청할 때 보내줘야 하는 데이터 RequestDTO 임
 public class Post {
     private Integer id;
     private String title;

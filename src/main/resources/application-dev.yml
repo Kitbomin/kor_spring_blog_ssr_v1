@@ -15,6 +15,26 @@ logging:
     com.example: DEBUG   # 내 프로젝트는 DEBUG 이상 모두 출력
 
 spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    # 발신자 계정
+    username: bomingim022@gmail.com
+    # 주의: 일반 구글 로그인 비밀번호가 아님 -> 앱 비밀번호를 공백을 제거한 후 넣어야함
+    password: iucvxjnlscuslzyv
+    properties:
+      mail:
+        smtp:
+          # SMTP 서버 인증 활성화 여부
+          auth: true
+          # START TLS (보안 연결)
+          starttls:
+            # 비 암호화 연결을 암호화 연결(TLS)로 승격 활성화 시켜줌
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
   servlet:
     multipart:
       enabled: true           # 파일 업로드 활성화
@@ -24,7 +44,7 @@ spring:
   # 데이터베이스 연결 설정 (H2 인메모리 데이터베이스)
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/myblog?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://localhost:3306/myblog?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: root
     password: root
 
@@ -38,7 +58,7 @@ spring:
   sql:
     init:
       # 2.5 이상 버전부터 명시를 해야 insert 처리 됨
-      mode: never
+      mode: always
       # 애플리케이션 시작시 실행할 SQL 파일 위치
       data-locations:
         - classpath:db/data.sql
@@ -48,7 +68,7 @@ spring:
     hibernate:
       # create: 애플리케이션 시작시 테이블을 새로 생성
       # 기존 데이터는 모두 삭제됨 (개발용)
-      ddl-auto: update
+      ddl-auto: create
     # SQL 쿼리를 콘솔에 출력 (개발용 디버깅)
     show-sql: true
     properties:
@@ -70,6 +90,7 @@ spring:
 oauth:
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
 
 tenco:
   key: ${TENCO_KEY}

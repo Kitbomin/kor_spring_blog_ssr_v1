@@ -9,24 +9,22 @@ public class ReplyRequest {
 
     // 댓글 작성
     @Data
-    public static class SaveDto {
+    public static class SaveDTO {
         private Long boardId;
         private String comment;
 
-        // 유효성 검사(형식 검사)
+        // 유효성 검사 (형식검사)
         public void validate() {
-            if (comment == null || comment.trim().isEmpty()) {
+            if(comment == null || comment.trim().isEmpty()) {
                 throw new Exception400("댓글 내용을 입력해주세요");
             }
-            if (comment.length() > 500) {
-                throw new Exception400("댓글은 500자 이하로만 작성 가능합니다.");
+            if(comment.length() > 500) {
+                throw new Exception400("댓글은 500자 이하여야 합니다");
             }
-
-            if (boardId == null) {
-                throw new Exception400("댓글을 작성할 게시글 ID가 필요합니다.");
+            if(boardId == null) {
+                throw new Exception400("게시글 ID가 필요합니다");
             }
         }
-
         // 서비스 단에서 DTO를 엔티티로 변환하는 편의 메서드 제공
         public Reply toEntity(Board board, User user) {
             return Reply.builder()
@@ -35,19 +33,20 @@ public class ReplyRequest {
                     .user(user)
                     .build();
         }
+
     }
 
     // 댓글 수정
     @Data
-    public static class UpdateDto {
+    public static class UpdateDTO {
         private String comment;
 
         public void validate() {
-            if (comment == null || comment.trim().isEmpty()) {
-                throw new Exception400("댓글이 비었어요오");
+            if(comment == null || comment.trim().isEmpty()) {
+                throw new Exception400("댓글 내용을 입력해주세요");
             }
-            if (comment.length() > 500) {
-                throw new Exception400("500자 ㄴㄴ");
+            if(comment.length() > 500) {
+                throw new Exception400("댓글은 500자 이하여하 합니다");
             }
         }
     }

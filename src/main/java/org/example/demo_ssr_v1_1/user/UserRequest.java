@@ -1,6 +1,7 @@
 package org.example.demo_ssr_v1_1.user;
 
 import lombok.Data;
+import org.example.demo_ssr_v1_1._core.errors.exception.Exception400;
 import org.springframework.web.multipart.MultipartFile;
 
 public class UserRequest {
@@ -29,7 +30,7 @@ public class UserRequest {
         // MultipartFile - Spring 에서 파일 업로드를 처리하기 위한 인터페이스
         // 우리 프로젝트에서는 선택 사항이라 회원 가입시 null 또는 empty 상태가 될 수 있음
         private MultipartFile profileImage;
-
+        
         public void validate() {
             if(username == null  || username.trim().isEmpty()) {
                 throw new IllegalArgumentException("사용자명을 입력해주세요");
@@ -72,6 +73,25 @@ public class UserRequest {
             }
             if(password.length() < 4) {
                 throw new IllegalArgumentException("비밀번호는 4글자 이상이어야 합니다");
+            }
+        }
+    }
+
+    @Data
+    public static class EmailCheckDTO {
+        private String email;
+        // 추후 이메일 인증번호도 추가할 예정
+        private String code;
+
+        public void validate() {
+            if (email == null || email.trim().isEmpty()) {
+
+                // Exception400 추후 수정
+                throw new Exception400("이메일 입력해주기");
+            }
+
+            if (!email.contains("@")) {
+                throw new Exception400("이메일이 아니야...");
             }
         }
     }
