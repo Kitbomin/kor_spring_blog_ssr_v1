@@ -11,17 +11,59 @@
         </div>
     {{/isOwner}}
 
-    <div class="d-flex justify-content-end">
+    <div class="d-flex justify-content-between align-items-center mb-2">
         <b>작성자</b> : {{board.username}}
     </div>
 
     <div>
+        <!-- 유료 게시글 표시 -->
+        {{#board.premium}}
+            <span class="badge bg-danger">유료 게시글</span>
+        {{/board.premium}}
         <h2><b>{{board.title}}</b></h2>
         <hr />
-        <div class="m-4 p-2">
-            {{board.content}}
+
+        <!-- 게시글 내용 -->
+        <div class="m-4 p-4 position-relative border rounded">
+
+            {{#board.premium}}
+                {{#board.isPurchased}}
+                    <!-- 유료 + 구매함 -->
+                    {{board.content}}
+                {{/board.isPurchased}}
+
+                {{^board.isPurchased}}
+                    {{#isOwner}}
+                        <!-- 유료 + 작성자 -->
+                        {{board.content}}
+                    {{/isOwner}}
+
+                    {{^isOwner}}
+                        <!-- 유료 + 미구매 + 작성자 아님 -->
+                        <div class="premium-overlay d-flex flex-column justify-content-center align-items-center text-center">
+                            <h4 class="mb-2">🔒 유료 게시글</h4>
+                            <p>이 게시글은 <strong>500 포인트</strong>가 필요합니다.</p>
+
+                            {{#sessionUser}}
+                                <button type="button" class="btn btn-primary mt-2">구매 하기</button>
+                            {{/sessionUser}}
+
+                            {{^sessionUser}}
+                                <a href="/login" class="btn btn-primary mt-2">로그인 후 구매</a>
+                            {{/sessionUser}}
+                        </div>
+                    {{/isOwner}}
+                {{/board.isPurchased}}
+            {{/board.premium}}
+
+            {{^board.premium}}
+                <!-- 무료 게시글 -->
+                {{board.content}}
+            {{/board.premium}}
+
         </div>
     </div>
+
 
     <div class="card mt-3">
         {{#sessionUser}}
@@ -70,6 +112,9 @@
             {{/replyList}}
         </div>
     </div>
+
+
+
 </div>
 
 {{> layout/footer}}
