@@ -1,5 +1,6 @@
 package org.example.demo_ssr_v1_1.user;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,7 @@ import java.util.Map;
 public class UserApiController {
 
     private final MailService mailService;
+    private final UserService userService;
 
 
     @PostMapping("/api/email/send")
@@ -44,6 +46,29 @@ public class UserApiController {
         } else {
             return ResponseEntity.badRequest().body(Map.of("message", "인증번호가 일치하지 않음"));
         }
+    }
+
+    @PostMapping("/api/point/charge")
+    public ResponseEntity<?> chargePoint(@RequestBody UserRequest.PointChargeDTO reqDTO, HttpSession session) {
+        reqDTO.validate();
+        User sessionUser = (User) session.getAttribute("sessionUser");
+
+        if (sessionUser == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "login이 필요"));
+        }
+
+        // 포인트 충전 처리
+        User updateUser = userService.포인트충전(sessionUser.getId(), reqDTO.getAmount());
+
+        // 세션에 업데이트 된 사용자 정보 갱신
+        session.setAttribute("sessionUser", updateUser);
+
+        return ResponseEntity.ok().body(
+                Map.of("message", "성공~",
+                        "amount", reqDTO.getAmount(),
+                        "currentPoint", updateUser.getPoint()
+                )
+        );
     }
 
 }

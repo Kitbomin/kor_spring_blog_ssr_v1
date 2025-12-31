@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.example.demo_ssr_v1_1._core.errors.exception.*;
+import org.example.demo_ssr_v1_1.purchase.PurchaseService;
 import org.example.demo_ssr_v1_1.reply.ReplyResponse;
 import org.example.demo_ssr_v1_1.reply.ReplyService;
 import org.example.demo_ssr_v1_1.user.User;
@@ -21,6 +22,7 @@ public class BoardController {
 
     private final BoardService boardService;
     private final ReplyService replyService; // 추가
+    private final PurchaseService purchaseService;
 
     /**
      * 게시글 수정 화면 요청
@@ -171,6 +173,17 @@ public class BoardController {
         model.addAttribute("replyList", replyList);
 
         return "board/detail";
+    }
+
+    @PostMapping("/board/{boardId}/purchase")
+    public String purchase(@PathVariable Long boardId, HttpSession session) {
+        // 1. 인증검사 - 로그인 인터셉터가 해줌
+        User sessionUser = (User) session.getAttribute("sessionUser");
+
+        // 포인트 차감 | 구매 내역 저장 ...
+        purchaseService.구매하기(sessionUser.getId(), boardId);
+
+        return "redirect:/board/" + boardId;
     }
 
 }
