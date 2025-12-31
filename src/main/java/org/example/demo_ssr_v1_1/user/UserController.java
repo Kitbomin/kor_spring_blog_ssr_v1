@@ -166,4 +166,14 @@ public class UserController {
         return "redirect:/login";
     }
 
+    // /user/point/charge
+    @GetMapping("/user/point/charge")
+    public String chargePointForm(Model model, HttpSession session){
+
+        User sessionUser = (User) session.getAttribute("sessionUser");
+
+        model.addAttribute("user", sessionUser);
+        return "user/charge-point";
+    }
+
 }
